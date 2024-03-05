@@ -1,7 +1,7 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Aleksey Pushkaryov t.me/all_eco_say Acerola game jam 1
 
-#include "AberSlayerGameMode.h"
-#include "AberSlayerCharacter.h"
+#include "AberSlayer/Public/GameModes/AberSlayerGameMode.h"
+
 #include "UObject/ConstructorHelpers.h"
 
 AAberSlayerGameMode::AAberSlayerGameMode()
