@@ -2,3 +2,7 @@
 
 
 #include "UI/Widgets/GameHUDMainWidget.h"
+
+#include "UI/Widgets/InventoryWidget.h"
+
+

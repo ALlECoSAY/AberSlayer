@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "AberSlayerCharacter.generated.h"
 
+class USplineComponent;
 class UAberSlayerPlayerInventoryComponent;
 class USpringArmComponent;
 class UCameraComponent;
@@ -34,7 +35,8 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-			
+
+	void ChangePointOfView();
 
 protected:
 	// APawn interface
@@ -45,9 +47,12 @@ protected:
 
 public:
 	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE TObjectPtr<USpringArmComponent> GetCameraBoom() const { return CameraBoom; }
+	/** Returns ThirdPersonCamera subobject **/
+	FORCEINLINE TObjectPtr<UCameraComponent> GetThirdPersonCamera() const { return ThirdPersonCamera; }
+
+	FORCEINLINE TObjectPtr<UCameraComponent> GetFirstPersonCamera() const { return FirstPersonCamera; }
+	FORCEINLINE TObjectPtr<UAberSlayerPlayerInventoryComponent> GetInventory() const { return Inventory; }
 
 
 protected:
@@ -55,9 +60,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
-	/** Follow camera */
+	/** ThirdPerson camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UCameraComponent> FollowCamera;
+	TObjectPtr<UCameraComponent> ThirdPersonCamera;
+
+	/** FirstPerson camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraComponent> FirstPersonCamera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAberSlayerPlayerInventoryComponent> Inventory;
@@ -78,5 +87,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> LookAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> ChangePointOfViewAction;
+
+	bool bIsFirstPersonView = false; 
+
+	
 };
 

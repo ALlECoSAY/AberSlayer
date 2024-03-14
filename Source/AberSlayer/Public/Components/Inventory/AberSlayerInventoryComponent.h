@@ -7,24 +7,30 @@
 #include "InventorySlot.h"
 #include "AberSlayerInventoryComponent.generated.h"
 
+class USplineComponent;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryChangedSignature, TArray<FInventorySlot> /*Slots*/);
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(AberSlayer), meta=(BlueprintSpawnableComponent))
 class ABERSLAYER_API UAberSlayerInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
 public:
-
+	FOnInventoryChangedSignature OnInventoryChanged;
+	
+public:
 	UAberSlayerInventoryComponent();
+	
+protected:
 
+	virtual void BeginPlay() override;
 	
-	
-protected:	
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "1", AllowPrivateAccess = "true"))
 	int32 SlotsNumber = 6;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<FInventorySlot> Slots;	
+
 	
 };
 
