@@ -54,10 +54,21 @@ AAberSlayerCharacter::AAberSlayerCharacter()
 	Inventory = CreateDefaultSubobject<UAberSlayerPlayerInventoryComponent>(TEXT("Inventory"));
 }
 
+void AAberSlayerCharacter::OnAberrate(bool bIsAberrated)
+{
+	
+	//todo
+	/*
+	const auto PlayerController = GetController();
+	
+	PlayerController->Possess(TwinCharacter);*/
+}
+
+
 void AAberSlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))

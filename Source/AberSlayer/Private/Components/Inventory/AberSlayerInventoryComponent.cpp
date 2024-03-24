@@ -2,8 +2,10 @@
 
 #include "AberSlayer/Public/Components/Inventory/AberSlayerInventoryComponent.h"
 
-#include "Characters/AberSlayerCharacter.h"
-#include "Components/SplineComponent.h"
+#include "GameModes/AberSlayerGameMode.h"
+
+
+DEFINE_LOG_CATEGORY(LogAberSlayerInventoryComponent);
 
 UAberSlayerInventoryComponent::UAberSlayerInventoryComponent()
 {
@@ -13,11 +15,20 @@ UAberSlayerInventoryComponent::UAberSlayerInventoryComponent()
 	
 }
 
+void UAberSlayerInventoryComponent::OnAberrate(bool bIsAberrated)
+{
+	UE_LOG(LogAberSlayerInventoryComponent, Log, TEXT("'%s' Aberration state changed to '%d'"), *GetNameSafe(this), bIsAberrated);
+	
+}
+
 void UAberSlayerInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	const auto GameMode = GetWorld()->GetAuthGameMode<AAberSlayerGameMode>();
+	check(GameMode)
 
+	GameMode->OnAberrateDelegate.AddUObject(this, &ThisClass::OnAberrate);
 	
 	
 	

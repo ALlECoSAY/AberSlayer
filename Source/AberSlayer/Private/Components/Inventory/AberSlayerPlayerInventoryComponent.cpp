@@ -5,10 +5,11 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Characters/AberSlayerCharacter.h"
 #include "Components/SplineComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerControllers/AberSlayerPlayerController.h"
+
+DEFINE_LOG_CATEGORY(LogAberSlayerPlayerInventoryComponent);
 
 #define SLOT_INDEX_DELTA -1
 
@@ -16,7 +17,7 @@ UAberSlayerPlayerInventoryComponent::UAberSlayerPlayerInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
-	CardsAnimationTimeline = FTimeline{};
+	CardsHighlightAnimationTimeline = FTimeline{};
 
 	
 	CardsCashedSplineOldTimeValues.Init(0.f, SlotsNumber);
@@ -25,21 +26,30 @@ UAberSlayerPlayerInventoryComponent::UAberSlayerPlayerInventoryComponent()
 	CardsCashedSplineOldHeightValues.Init(0.f, SlotsNumber);
 	CardsCashedSplineCurrentHeightValues.Init(0.f, SlotsNumber);
 	CardsCashedSplineNewHeightValues.Init(0.f, SlotsNumber);
+	
+	CardsRandomRotationDilatation.Init(0.f, SlotsNumber);
 }
 
 void UAberSlayerPlayerInventoryComponent::BeginPlay()
 {
 	check(CardClass);
 	Super::BeginPlay();
-
-	FOnTimelineFloat CardsAnimationUpdateDelegate;
-	CardsAnimationUpdateDelegate.BindUFunction(this, FName("CardsAnimationUpdate"));
-	check(CardsAnimationCurve);
-	const auto EndTime = CardsAnimationCurve->FloatCurve.GetLastKey().Time;
-	CardsAnimationTimeline.SetNewTime(0.f);
-	CardsAnimationTimeline.SetTimelineLength(EndTime);
-	CardsAnimationTimeline.AddInterpFloat(CardsAnimationCurve, CardsAnimationUpdateDelegate, FName("CardsAnimationUpdate"));
-
+	// Highlight
+	FOnTimelineFloat CardsHighlightAnimationUpdateDelegate;
+	CardsHighlightAnimationUpdateDelegate.BindUFunction(this, FName("CardsHighlightAnimationTimelineUpdate"));
+	check(CardsRotationAnimationCurve);
+	const auto HighlightEndTime = CardsHighlightAnimationCurve->FloatCurve.GetLastKey().Time;
+	CardsHighlightAnimationTimeline.SetNewTime(0.f);
+	CardsHighlightAnimationTimeline.SetTimelineLength(HighlightEndTime);
+	CardsHighlightAnimationTimeline.AddInterpFloat(CardsHighlightAnimationCurve, CardsHighlightAnimationUpdateDelegate, FName("CardsHighlightAnimationTimelineUpdate"));
+	// Rotation
+	FOnTimelineFloat CardsRotationAnimationUpdateDelegate;
+	CardsRotationAnimationUpdateDelegate.BindUFunction(this, FName("CardsRotationAnimationTimelineUpdate"));
+	check(CardsHighlightAnimationCurve);
+	const auto RotationEndTime = CardsRotationAnimationCurve->FloatCurve.GetLastKey().Time;
+	CardsRotationAnimationTimeline.SetNewTime(0.f);
+	CardsRotationAnimationTimeline.SetTimelineLength(RotationEndTime);
+	CardsRotationAnimationTimeline.AddInterpFloat(CardsHighlightAnimationCurve, CardsRotationAnimationUpdateDelegate, FName("CardsRotationAnimationTimelineUpdate"));
 	
 	AddInputMappingContext();
 	BindInputActionsToCallbackFunctions();
@@ -59,7 +69,7 @@ void UAberSlayerPlayerInventoryComponent::BeginPlay()
 	}
 	
 	
-	UpdateCardsSplineUI();	
+	UpdateCardsSplineCountUI();	
 }
 
 void UAberSlayerPlayerInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -72,10 +82,21 @@ void UAberSlayerPlayerInventoryComponent::TickComponent(float DeltaTime, ELevelT
 		GEngine->AddOnScreenDebugMessage(44, 1.f, FColor::Red, FString::Printf(TEXT("%hs"), __FUNCTION__));
 #endif
 	
-	if(CardsAnimationTimeline.IsPlaying())
+	if(CardsHighlightAnimationTimeline.IsPlaying())
 	{
-		CardsAnimationTimeline.TickTimeline(DeltaTime);
+		CardsHighlightAnimationTimeline.TickTimeline(DeltaTime);
 	}
+	if(CardsRotationAnimationTimeline.IsPlaying())
+	{
+		CardsRotationAnimationTimeline.TickTimeline(DeltaTime);
+	}
+}
+
+void UAberSlayerPlayerInventoryComponent::OnAberrate(bool NewBIsAberrated)
+{
+	//todo
+	this->bIsAberrated = NewBIsAberrated;
+	UpdateAberratedUI();
 }
 
 void UAberSlayerPlayerInventoryComponent::AddInputMappingContext()
@@ -101,11 +122,8 @@ void UAberSlayerPlayerInventoryComponent::BindInputActionsToCallbackFunctions()
 	//get the input component
 	const auto EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerController->InputComponent);
 	
-	
 	EnhancedInputComponent->BindAction(ScrollActiveSlotIndexAction, ETriggerEvent::Triggered, this, &ThisClass::ScrollActiveSlot);
-
 	EnhancedInputComponent->BindAction(ChooseActiveSlotIndexAction, ETriggerEvent::Triggered, this, &ThisClass::ChooseActiveSlot);
-
 }
 
 void UAberSlayerPlayerInventoryComponent::ScrollActiveSlot(const FInputActionValue& InputActionValue)
@@ -144,14 +162,38 @@ void UAberSlayerPlayerInventoryComponent::SetActiveSlot(int32 Index)
 	check(Index >= 0 && Index < SlotsNumber);
 	ActiveSlotIndex = Index;
 	OnActiveSlotChanged.Broadcast(Index);
-	UpdateCardsSplineUI();
+	UpdateCardsSplineCountUI();
 #if WITH_EDITOR
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%hs %d"),__FUNCTION__, Index));
 #endif
 }
 
-void UAberSlayerPlayerInventoryComponent::CardsAnimationUpdate_Implementation(float Value)
+void UAberSlayerPlayerInventoryComponent::UpdateAberratedUI_Implementation()
+{
+	CardsRotationAnimationTimeline.PlayFromStart();
+}
+
+void UAberSlayerPlayerInventoryComponent::CardsRotationAnimationTimelineUpdate_Implementation(float Value)
+{
+	const auto NumOfSlots = Slots.Num();
+	if(!NumOfSlots) { return; }
+	
+	for (int32 i = 0; i < SlotsNumber; i++)
+	{
+		const auto& Slot = Slots[i];
+		const auto Card = Slot.CardActor;
+		const auto CardMesh = Card->CardMesh;
+		const auto OldCardRotation = bIsAberrated ? FRotator(0.f, 90.f, 0.f) : FRotator(0.f, 90.f, 180.f);
+		const auto NewCardRotation = OldCardRotation + FRotator(0.f, 0.f, 180.f);
+
+		const auto CurrentCardRotation = FMath::Lerp(OldCardRotation, NewCardRotation, Value);
+		
+		CardMesh->SetRelativeRotation(CurrentCardRotation);
+	}
+}
+
+void UAberSlayerPlayerInventoryComponent::CardsHighlightAnimationTimelineUpdate_Implementation(float Value)
 {
 	const auto NumOfSlots = Slots.Num();
 	if(!NumOfSlots) { return; }
@@ -177,7 +219,7 @@ void UAberSlayerPlayerInventoryComponent::CardsAnimationUpdate_Implementation(fl
 	}
 }
 
-void UAberSlayerPlayerInventoryComponent::UpdateCardsSplineUI_Implementation()
+void UAberSlayerPlayerInventoryComponent::UpdateCardsSplineCountUI_Implementation()
 {
 
 	const auto NumOfSlots = Slots.Num();
@@ -203,5 +245,5 @@ void UAberSlayerPlayerInventoryComponent::UpdateCardsSplineUI_Implementation()
 	}
 	CardsSplineRenderActor->UpdateRenderActors(ActorsToIncludeInRender);
 
-	CardsAnimationTimeline.PlayFromStart();
+	CardsHighlightAnimationTimeline.PlayFromStart();
 }

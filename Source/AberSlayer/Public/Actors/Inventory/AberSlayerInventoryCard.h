@@ -27,6 +27,5 @@ public:
 	TObjectPtr<UStaticMeshComponent> CardMesh;
 
 	
-
 	
 };

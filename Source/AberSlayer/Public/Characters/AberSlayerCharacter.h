@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Aberrable/Aberrable.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "AberSlayerCharacter.generated.h"
@@ -18,7 +19,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class AAberSlayerCharacter : public ACharacter
+class AAberSlayerCharacter : public ACharacter, public IAberrable
 {
 	GENERATED_BODY()
 
@@ -27,6 +28,7 @@ class AAberSlayerCharacter : public ACharacter
 public:
 	AAberSlayerCharacter();
 	
+	virtual void OnAberrate(bool bIsAberrated) override;
 
 protected:
 
@@ -43,21 +45,29 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	// To add mapping context
-	virtual void BeginPlay();
+	virtual void BeginPlay() override;
 
 public:
+	
+#pragma region Getters/Setters
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE TObjectPtr<USpringArmComponent> GetCameraBoom() const { return CameraBoom; }
+
 	/** Returns ThirdPersonCamera subobject **/
 	FORCEINLINE TObjectPtr<UCameraComponent> GetThirdPersonCamera() const { return ThirdPersonCamera; }
 
 	FORCEINLINE TObjectPtr<UCameraComponent> GetFirstPersonCamera() const { return FirstPersonCamera; }
 	FORCEINLINE TObjectPtr<UAberSlayerPlayerInventoryComponent> GetInventory() const { return Inventory; }
 
+#pragma endregion Getters/Setters
 
 protected:
+	
+#pragma region Components
+
 	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY
+	(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
 	/** ThirdPerson camera */
@@ -70,7 +80,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAberSlayerPlayerInventoryComponent> Inventory;
-	
+
+#pragma endregion Components
+#pragma region Input
+
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
@@ -89,9 +102,13 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> ChangePointOfViewAction;
+#pragma endregion Input
 
-	bool bIsFirstPersonView = false; 
-
+	UPROPERTY()
+	bool bIsFirstPersonView = false;
+	
+	UPROPERTY()
+	TObjectPtr<AAberSlayerCharacter> TwinCharacter;
 	
 };
 

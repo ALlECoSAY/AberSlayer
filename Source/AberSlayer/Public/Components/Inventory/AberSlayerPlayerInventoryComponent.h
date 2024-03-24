@@ -10,6 +10,8 @@
 #include "Components/TimelineComponent.h"
 #include "AberSlayerPlayerInventoryComponent.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogAberSlayerPlayerInventoryComponent, Log, All);
+
 class AAberSlayerItem;
 class UInputMappingContext;
 class UInputAction;
@@ -30,6 +32,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual void OnAberrate(bool bIsAberrated) override;
 	
 	// Input mappings management
 	void AddInputMappingContext();
@@ -43,10 +47,16 @@ protected:
 	void SetActiveSlot(int32 Index);
 
 	UFUNCTION(BlueprintNativeEvent)
-	void UpdateCardsSplineUI();
+	void UpdateCardsSplineCountUI();
 
 	UFUNCTION(BlueprintNativeEvent)
-	void CardsAnimationUpdate(float Value);
+	void UpdateAberratedUI();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void CardsHighlightAnimationTimelineUpdate(float Value);
+
+	UFUNCTION(BlueprintNativeEvent)
+	void CardsRotationAnimationTimelineUpdate(float Value);
 	
 protected:
 #pragma region Input
@@ -96,17 +106,24 @@ protected:
 	float ActiveCardHeightOffset = 4.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|UI", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UCurveFloat> CardsAnimationCurve;
-
-	float CardsAnimationProgress = 0.f;
-
-	FTimeline CardsAnimationTimeline;
-
+	TObjectPtr<UCurveFloat> CardsHighlightAnimationCurve;
+	
+	FTimeline CardsHighlightAnimationTimeline;
 	TArray<float> CardsCashedSplineOldTimeValues;
 	TArray<float> CardsCashedSplineCurrentTimeValues;
 	TArray<float> CardsCashedSplineNewTimeValues;
 	TArray<float> CardsCashedSplineOldHeightValues;
 	TArray<float> CardsCashedSplineCurrentHeightValues;
 	TArray<float> CardsCashedSplineNewHeightValues;
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|UI", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCurveFloat> CardsRotationAnimationCurve;
+
+	FTimeline CardsRotationAnimationTimeline;
+	TArray<float> CardsRandomRotationDilatation;
+
+
+	bool bIsAberrated;
 	
 };
